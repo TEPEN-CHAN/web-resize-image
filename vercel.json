@@ -1,0 +1,26 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    {
+      "source": "/resize",
+      "destination": "/api/resize"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    }
+  ],
+  "functions": {
+    "api/resize.py": {
+      "maxDuration": 60,
+      "excludeFiles": "{README.md,templates/**,__pycache__/**,*.log}"
+    }
+  }
+}
