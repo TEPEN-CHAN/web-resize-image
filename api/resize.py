@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import mimetypes
 import zipfile
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler
@@ -22,9 +23,41 @@ from resize_core import (
 
 MAX_UPLOAD_BYTES = 4 * 1024 * 1024
 MAX_RESPONSE_BYTES = 4 * 1024 * 1024
+PROJECT_DIR = Path(__file__).resolve().parents[1]
+INDEX_FILE = PROJECT_DIR / "index.html"
+STATIC_DIR = PROJECT_DIR / "static"
 
 
 class handler(BaseHTTPRequestHandler):
+    def do_GET(self) -> None:
+        path = self.path.split("?", 1)[0]
+
+        if path in ("/", "/index.html"):
+            self.send_file(INDEX_FILE, "text/html; charset=utf-8")
+            return
+
+        if path == "/api/resize":
+            self.send_json(
+                {"message": "Resize API aktif. Gunakan tombol upload di halaman utama."},
+                HTTPStatus.OK,
+            )
+            return
+
+        if path.startswith("/static/"):
+            relative_path = path.removeprefix("/static/")
+            target = (STATIC_DIR / relative_path).resolve()
+            static_root = STATIC_DIR.resolve()
+
+            if target == static_root or static_root not in target.parents:
+                self.send_error(HTTPStatus.NOT_FOUND)
+                return
+
+            content_type = mimetypes.guess_type(target.name)[0] or "application/octet-stream"
+            self.send_file(target, content_type)
+            return
+
+        self.send_error(HTTPStatus.NOT_FOUND)
+
     def do_OPTIONS(self) -> None:
         self.send_response(HTTPStatus.NO_CONTENT)
         self.send_header("Access-Control-Allow-Methods", "POST, OPTIONS")
@@ -108,9 +141,24 @@ class handler(BaseHTTPRequestHandler):
         self.wfile.write(payload)
 
     def send_json_error(self, message: str, status: HTTPStatus) -> None:
-        payload = json.dumps({"error": message}, ensure_ascii=False).encode("utf-8")
+        self.send_json({"error": message}, status)
+
+    def send_json(self, data: dict[str, str], status: HTTPStatus) -> None:
+        payload = json.dumps(data, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(payload)))
+        self.end_headers()
+        self.wfile.write(payload)
+
+    def send_file(self, path: Path, content_type: str) -> None:
+        if not path.is_file():
+            self.send_error(HTTPStatus.NOT_FOUND)
+            return
+
+        payload = path.read_bytes()
+        self.send_response(HTTPStatus.OK)
+        self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(payload)))
         self.end_headers()
         self.wfile.write(payload)
