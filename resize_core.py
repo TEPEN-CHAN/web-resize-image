@@ -143,6 +143,14 @@ def build_summary(processed: Iterable[ProcessedImage], errors: Iterable[ProcessE
 
 
 def parse_uploaded_images(content_type: str, body: bytes) -> list[UploadedFile]:
+    uploads, _ = parse_multipart_form(content_type, body)
+    return uploads
+
+
+def parse_multipart_form(
+    content_type: str,
+    body: bytes,
+) -> tuple[list[UploadedFile], dict[str, str]]:
     if not content_type.lower().startswith("multipart/form-data"):
         raise ValueError("Form upload tidak valid.")
 
@@ -157,17 +165,21 @@ def parse_uploaded_images(content_type: str, body: bytes) -> list[UploadedFile]:
         raise ValueError("Form upload tidak berisi gambar.")
 
     uploads: list[UploadedFile] = []
+    fields: dict[str, str] = {}
     for part in message.iter_parts():
         if part.get_content_disposition() != "form-data":
             continue
 
-        if part.get_param("name", header="content-disposition") != "images":
+        field_name = part.get_param("name", header="content-disposition")
+        if not field_name:
             continue
 
         filename = part.get_filename()
         payload = part.get_payload(decode=True) or b""
 
-        if filename:
+        if field_name == "images" and filename:
             uploads.append(UploadedFile(filename=filename, data=payload))
+        elif not filename:
+            fields[field_name] = payload.decode("utf-8", errors="replace")
 
-    return uploads
+    return uploads, fields

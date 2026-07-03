@@ -32,4 +32,5 @@ Buka `http://127.0.0.1:8000` di browser.
 
 - Tidak memakai login.
 - Tidak memakai database.
-- Gambar diproses sementara dan hasilnya diunduh sebagai ZIP.
+- Output bisa berupa JPG satu-satu atau ZIP.
+- Jika lebih dari 2 gambar diproses, hasil otomatis diunduh sebagai ZIP.

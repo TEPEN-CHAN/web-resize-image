@@ -211,6 +211,68 @@ h1 {
   background: var(--mint);
 }
 
+.output-options {
+  margin: 16px 0 0;
+  padding: 0;
+  border: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.output-options legend {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.mode-option {
+  min-height: 64px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  cursor: pointer;
+  background: #ffffff;
+  transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+}
+
+.mode-option:has(input:checked) {
+  border-color: rgba(15, 118, 110, 0.56);
+  background: var(--mint);
+  box-shadow: 0 10px 24px rgba(15, 118, 110, 0.12);
+}
+
+.mode-option:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.56;
+}
+
+.mode-option input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--teal);
+}
+
+.mode-option strong,
+.mode-option small {
+  display: block;
+}
+
+.mode-option strong {
+  font-size: 0.94rem;
+  line-height: 1.2;
+}
+
+.mode-option small {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
 .loader {
   width: 18px;
   height: 18px;
@@ -355,6 +417,10 @@ h1 {
   }
 
   .action-row {
+    grid-template-columns: 1fr;
+  }
+
+  .output-options {
     grid-template-columns: 1fr;
   }
 

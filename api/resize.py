@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import json
 import mimetypes
 import zipfile
@@ -14,7 +15,7 @@ from resize_core import (
     ALLOWED_EXTENSIONS,
     ProcessError,
     build_summary,
-    parse_uploaded_images,
+    parse_multipart_form,
     resize_image,
     safe_filename,
     unique_name,
@@ -79,10 +80,17 @@ class handler(BaseHTTPRequestHandler):
 
         try:
             body = self.rfile.read(content_length)
-            file_fields = parse_uploaded_images(self.headers.get("Content-Type", ""), body)
+            file_fields, fields = parse_multipart_form(
+                self.headers.get("Content-Type", ""),
+                body,
+            )
         except ValueError as exc:
             self.send_json_error(str(exc), HTTPStatus.BAD_REQUEST)
             return
+
+        requested_output = fields.get("output_mode", "zip").strip().lower()
+        if requested_output not in {"image", "zip"}:
+            requested_output = "zip"
 
         processed = []
         errors: list[ProcessError] = []
@@ -116,6 +124,10 @@ class handler(BaseHTTPRequestHandler):
             self.send_json_error(message, HTTPStatus.BAD_REQUEST)
             return
 
+        if requested_output == "image" and len(file_fields) <= 2 and len(processed) <= 2:
+            self.send_image_json(processed, errors)
+            return
+
         zip_buffer = BytesIO()
         with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as archive:
             for item in processed:
@@ -135,6 +147,7 @@ class handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/zip")
         self.send_header("Content-Length", str(len(payload)))
         self.send_header("Content-Disposition", 'attachment; filename="hasil-resize-gambar.zip"')
+        self.send_header("X-Output-Mode", "zip")
         self.send_header("X-Processed-Count", str(len(processed)))
         self.send_header("X-Failed-Count", str(len(errors)))
         self.end_headers()
@@ -150,6 +163,38 @@ class handler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(payload)))
         self.end_headers()
         self.wfile.write(payload)
+
+    def send_image_json(self, processed: list, errors: list[ProcessError]) -> None:
+        files = [
+            {
+                "filename": item.filename,
+                "contentType": "image/jpeg",
+                "data": base64.b64encode(item.data).decode("ascii"),
+                "sizeKb": round(item.result_kb, 1),
+                "quality": item.quality,
+            }
+            for item in processed
+        ]
+        payload = {
+            "mode": "image",
+            "processed": len(processed),
+            "failed": len(errors),
+            "files": files,
+            "errors": [
+                {"filename": error.filename, "message": error.message}
+                for error in errors
+            ],
+        }
+
+        self.send_response(HTTPStatus.OK)
+        body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("X-Output-Mode", "image")
+        self.send_header("X-Processed-Count", str(len(processed)))
+        self.send_header("X-Failed-Count", str(len(errors)))
+        self.end_headers()
+        self.wfile.write(body)
 
     def send_file(self, path: Path, content_type: str) -> None:
         if not path.is_file():

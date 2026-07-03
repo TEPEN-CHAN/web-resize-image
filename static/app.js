@@ -6,6 +6,7 @@ const processButton = document.querySelector("#processButton");
 const fileCount = document.querySelector("#fileCount");
 const fileList = document.querySelector("#fileList");
 const statusMessage = document.querySelector("#statusMessage");
+const outputModeInputs = document.querySelectorAll('input[name="outputMode"]');
 
 const MAX_TOTAL_UPLOAD_BYTES = 4 * 1024 * 1024;
 const MAX_FILE_COUNT = 12;
@@ -41,6 +42,22 @@ function selectedBytes() {
   return selectedFiles.reduce((total, file) => total + file.size, 0);
 }
 
+function outputMode() {
+  return document.querySelector('input[name="outputMode"]:checked')?.value || "zip";
+}
+
+function updateOutputMode() {
+  const imageOption = document.querySelector('input[name="outputMode"][value="image"]');
+  const zipOption = document.querySelector('input[name="outputMode"][value="zip"]');
+
+  if (selectedFiles.length > 2) {
+    imageOption.disabled = true;
+    zipOption.checked = true;
+  } else {
+    imageOption.disabled = false;
+  }
+}
+
 function syncInputFiles() {
   const transfer = new DataTransfer();
   selectedFiles.forEach((file) => transfer.items.add(file));
@@ -73,6 +90,7 @@ function addFiles(files) {
   });
 
   syncInputFiles();
+  updateOutputMode();
   renderFiles();
 
   if (skippedByLimit > 0) {
@@ -94,10 +112,12 @@ function removeFile(index) {
   }
 
   syncInputFiles();
+  updateOutputMode();
   renderFiles();
 }
 
 function renderFiles() {
+  updateOutputMode();
   fileList.innerHTML = "";
   fileCount.textContent =
     selectedFiles.length === 0
@@ -149,7 +169,52 @@ function filenameFromDisposition(disposition) {
   return match ? match[1] : "hasil-resize-gambar.zip";
 }
 
+function downloadBlob(blob, filename) {
+  const downloadUrl = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = downloadUrl;
+  link.download = filename;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(downloadUrl);
+}
+
+function blobFromBase64(base64, contentType) {
+  const byteCharacters = atob(base64);
+  const chunks = [];
+
+  for (let offset = 0; offset < byteCharacters.length; offset += 8192) {
+    const slice = byteCharacters.slice(offset, offset + 8192);
+    const bytes = new Uint8Array(slice.length);
+
+    for (let index = 0; index < slice.length; index += 1) {
+      bytes[index] = slice.charCodeAt(index);
+    }
+
+    chunks.push(bytes);
+  }
+
+  return new Blob(chunks, { type: contentType });
+}
+
+function downloadImageFiles(files) {
+  files.forEach((file, index) => {
+    const blob = blobFromBase64(file.data, file.contentType || "image/jpeg");
+    window.setTimeout(() => downloadBlob(blob, file.filename), index * 250);
+  });
+}
+
 chooseButton.addEventListener("click", () => imageInput.click());
+
+outputModeInputs.forEach((input) => {
+  input.addEventListener("change", () => {
+    if (input.value === "image" && selectedFiles.length > 2) {
+      document.querySelector('input[name="outputMode"][value="zip"]').checked = true;
+      setStatus("Lebih dari 2 foto otomatis diunduh sebagai ZIP.", "error");
+    }
+  });
+});
 
 imageInput.addEventListener("change", () => {
   addFiles(imageInput.files);
@@ -190,6 +255,7 @@ form.addEventListener("submit", async (event) => {
 
   const payload = new FormData();
   selectedFiles.forEach((file) => payload.append("images", file));
+  payload.append("output_mode", outputMode());
 
   setBusy(true);
   setStatus("Gambar sedang diproses...");
@@ -205,20 +271,22 @@ form.addEventListener("submit", async (event) => {
       throw new Error(error.error || "Gagal memproses gambar.");
     }
 
-    const blob = await response.blob();
-    const downloadUrl = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = downloadUrl;
-    link.download = filenameFromDisposition(response.headers.get("Content-Disposition"));
-    document.body.append(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(downloadUrl);
+    const responseMode = response.headers.get("X-Output-Mode");
+    const contentType = response.headers.get("Content-Type") || "";
 
     const processed = response.headers.get("X-Processed-Count") || selectedFiles.length;
     const failed = Number(response.headers.get("X-Failed-Count") || 0);
     const suffix = failed > 0 ? `, ${failed} gagal` : "";
-    setStatus(`${processed} gambar berhasil diproses${suffix}.`, "success");
+
+    if (responseMode === "image" || contentType.includes("application/json")) {
+      const result = await response.json();
+      downloadImageFiles(result.files || []);
+      setStatus(`${processed} gambar berhasil diunduh sebagai JPG${suffix}.`, "success");
+    } else {
+      const blob = await response.blob();
+      downloadBlob(blob, filenameFromDisposition(response.headers.get("Content-Disposition")));
+      setStatus(`${processed} gambar berhasil diunduh sebagai ZIP${suffix}.`, "success");
+    }
   } catch (error) {
     setStatus(error.message, "error");
   } finally {
