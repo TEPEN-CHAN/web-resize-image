@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Resize Gambar 250 KB</title>
+    <link rel="stylesheet" href="/static/style.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="workspace" aria-labelledby="page-title">
+        <div class="intro">
+          <p class="eyebrow">Web Resize Gambar</p>
+          <h1 id="page-title">Resize gambar ke 250 KB</h1>
+          <p class="intro-copy">JPG dan PNG diproses menjadi JPG dengan dimensi maksimal 2000 x 2000 px.</p>
+        </div>
+
+        <form id="resizeForm" class="tool-panel">
+          <div id="dropZone" class="drop-zone" tabindex="0">
+            <input id="imageInput" name="images" type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" multiple>
+            <div class="drop-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" role="img">
+                <path d="M12 3a6 6 0 0 0-5.86 4.75A5.5 5.5 0 0 0 6.5 18H10v-2H6.5a3.5 3.5 0 0 1-.15-7l1.42-.06.29-1.39A4 4 0 0 1 16 8.4l.44 1.08 1.15.18A3.2 3.2 0 0 1 17.1 16H14v2h3.1a5.2 5.2 0 0 0 .9-10.32A6 6 0 0 0 12 3Zm1 8.4 2.3 2.3 1.4-1.4L12 7.6l-4.7 4.7 1.4 1.4 2.3-2.3V21h2v-9.6Z"></path>
+              </svg>
+            </div>
+            <div>
+              <p class="drop-title">Pilih atau jatuhkan gambar</p>
+              <p class="drop-note">JPG, JPEG, PNG</p>
+            </div>
+          </div>
+
+          <div class="action-row">
+            <button id="chooseButton" class="button secondary" type="button" title="Pilih gambar">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 5a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v2h-2V7H11.17l-2-2H6v12h5v2H6a2 2 0 0 1-2-2V5Zm13 5h-2v3h-3v2h3v3h2v-3h3v-2h-3v-3Z"></path>
+              </svg>
+              Pilih Gambar
+            </button>
+            <button id="processButton" class="button primary" type="submit" disabled title="Proses dan download">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M13 3h-2v10.17l-3.59-3.58L6 11l6 6 6-6-1.41-1.41L13 13.17V3ZM5 19h14v2H5v-2Z"></path>
+              </svg>
+              Proses & Download
+            </button>
+          </div>
+
+          <div class="summary-bar" aria-live="polite">
+            <span id="fileCount">Belum ada gambar dipilih</span>
+            <span>Maks 12 gambar / 4 MB</span>
+          </div>
+
+          <div id="fileList" class="file-list" aria-label="Daftar gambar"></div>
+
+          <div id="statusMessage" class="status-message" role="status" aria-live="polite"></div>
+        </form>
+      </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>
