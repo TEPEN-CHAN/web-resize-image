@@ -9,7 +9,7 @@ from pathlib import Path
 
 from PIL import UnidentifiedImageError
 
-from app import (
+from resize_core import (
     ALLOWED_EXTENSIONS,
     ProcessError,
     build_summary,

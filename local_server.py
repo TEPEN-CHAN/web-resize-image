@@ -192,7 +192,7 @@ def parse_uploaded_images(content_type: str, body: bytes) -> list[UploadedFile]:
 
 
 class ResizeHandler(SimpleHTTPRequestHandler):
-    server_version = "ResizeImageWeb/1.0"
+    server_version = "ResizeImageLocal/1.0"
 
     def do_GET(self) -> None:
         if self.path in ("/", "/index.html"):

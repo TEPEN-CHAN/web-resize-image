@@ -21,7 +21,7 @@ Vercel akan menyajikan `index.html` sebagai halaman utama dan menjalankan
 
 ```powershell
 python -m pip install -r requirements.txt
-python app.py
+python local_server.py
 ```
 
 Buka `http://127.0.0.1:8000` di browser.
