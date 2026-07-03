@@ -13,7 +13,8 @@ Aplikasi web sederhana untuk resize banyak gambar menjadi JPG maksimal 250 KB.
 
 Vercel akan menyajikan `index.html` sebagai halaman utama dan menjalankan
 `api/resize.py` sebagai Python Function. Entrypoint Python dikunci lewat
-`pyproject.toml` supaya Vercel membaca `api.resize:handler`.
+`pyproject.toml` supaya Vercel membaca `api.resize:handler` dan memasang
+dependency `Pillow`.
 
 > Catatan: Vercel Function punya batas payload, jadi web ini membatasi upload
 > menjadi maksimal 12 gambar atau total 4 MB per proses.
